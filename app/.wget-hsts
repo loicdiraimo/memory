@@ -1,0 +1,5 @@
+# HSTS 1.0 Known Hosts database for GNU Wget.
+# Edit at your own risk.
+# <hostname>[:<port>]	<incl. subdomains>	<created>	<max-age>
+suno.com	0	0	1739970114	63072000
+drive.google.com	0	0	1739907500	31536000

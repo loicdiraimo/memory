@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simon - Memory Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background: var(--game-background) no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+        }
+
+        :root {
+            --game-background: url('backgroundwuwa.png');
+        }
+
+        .home-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 1em;
+        }
+
+        .home-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .control-button.active {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .simon-container {
+            display: grid;
+            grid-template-columns: repeat(2, 150px);
+            grid-template-rows: repeat(2, 150px);
+            gap: 10px;
+            margin: 20px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+        }
+
+        .simon-button {
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+            opacity: 0.7;
+        }
+
+        .simon-button img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+
+        .simon-button.active {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .score {
+            font-size: 24px;
+            margin: 20px 0;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
+        .easter-egg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .easter-egg img {
+            max-width: 80%;
+            max-height: 60vh;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .easter-egg-text {
+            font-size: 24px;
+            color: white;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="home-button">Home</a>
+    
+    <div class="controls">
+        <button id="startButton" class="control-button">Start</button>
+        <button id="themeButton" class="control-button">Changer de thème</button>
+        <button id="soundButton" class="control-button">🔊</button>
+    </div>
+
+    <div class="score">Score: <span id="scoreDisplay">0</span></div>
+
+    <div class="simon-container">
+        <button class="simon-button" data-index="0"><img src="nahida.png" alt="Button 1"></button>
+        <button class="simon-button" data-index="1"><img src="furina.png" alt="Button 2"></button>
+        <button class="simon-button" data-index="2"><img src="mavuika.png" alt="Button 3"></button>
+        <button class="simon-button" data-index="3"><img src="image1.png" alt="Button 4"></button>
+    </div>
+
+    <div class="easter-egg" id="easterEgg">
+        <img src="easter-egg.png" alt="Congratulations">
+        <div class="easter-egg-text">Félicitations ! Vous avez gagné !</div>
+    </div>
+
+    <script>
+        const themes = {
+            genshin: {
+                background: 'backgroundwuwa.png',
+                buttons: ['nahida.png', 'furina.png', 'mavuika.png', 'image1.png'],
+                sounds: ['nahida.mp3', 'furina.mp3', 'mavuika.mp3', 'paimon.mp3'],
+                victorySound: 'symvba1.mp3'
+            },
+            wuwa: {
+                background: 'imagewuwa/backgroundwuwa2.png',
+                buttons: ['imagewuwa/Abby.png', 'imagewuwa/camellya.png', 'imagewuwa/Changli.png', 'imagewuwa/Pheobe.png'],
+                sounds: ['abby.mp3', 'camellya.mp3', 'changli.mp3', 'phoebe.mp3'],
+                victorySound: 'symvba1.mp3'
+            }
+        };
+
+        let currentTheme = 'genshin';
+        let sequence = [];
+        let playerSequence = [];
+        let score = 0;
+        let isPlaying = false;
+        let soundEnabled = true;
+
+        const buttons = document.querySelectorAll('.simon-button');
+        const startButton = document.getElementById('startButton');
+        const themeButton = document.getElementById('themeButton');
+        const soundButton = document.getElementById('soundButton');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const easterEgg = document.getElementById('easterEgg');
+
+        const sounds = {};
+        
+        // Préchargement des sons
+        function loadSounds() {
+            themes[currentTheme].sounds.forEach((sound, index) => {
+                sounds[`sound${index}`] = new Audio(sound);
+            });
+            sounds.victory = new Audio(themes[currentTheme].victorySound);
+        }
+
+        function updateTheme() {
+            document.documentElement.style.setProperty('--game-background', `url('${themes[currentTheme].background}')`);
+            buttons.forEach((button, index) => {
+                button.querySelector('img').src = themes[currentTheme].buttons[index];
+            });
+            loadSounds();
+        }
+
+        function playSound(index) {
+            if (soundEnabled && sounds[`sound${index}`]) {
+                sounds[`sound${index}`].currentTime = 0;
+                sounds[`sound${index}`].play();
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            soundButton.textContent = soundEnabled ? '🔊' : '🔈';
+        }
+
+        function activateButton(button) {
+            button.classList.add('active');
+            playSound(button.dataset.index);
+            setTimeout(() => {
+                button.classList.remove('active');
+            }, 500);
+        }
+
+        function showEasterEgg() {
+            easterEgg.style.display = 'flex';
+            if (soundEnabled) {
+                sounds.victory.play();
+            }
+            setTimeout(() => {
+                easterEgg.style.display = 'none';
+                resetGame();
+            }, 5000);
+        }
+
+        function playSequence() {
+            let i = 0;
+            isPlaying = true;
+            const interval = setInterval(() => {
+                activateButton(buttons[sequence[i]]);
+                i++;
+                if (i >= sequence.length) {
+                    clearInterval(interval);
+                    isPlaying = false;
+                }
+            }, 1000);
+        }
+
+        function nextRound() {
+            sequence.push(Math.floor(Math.random() * 4));
+            score++;
+            scoreDisplay.textContent = score;
+            if (score === 33) {
+                showEasterEgg();
+            } else {
+                playSequence();
+            }
+        }
+
+        function checkPlayerSequence() {
+            if (playerSequence[playerSequence.length - 1] !== sequence[playerSequence.length - 1]) {
+                alert('Game Over! Score: ' + score);
+                resetGame();
+                return;
+            }
+            if (playerSequence.length === sequence.length) {
+                playerSequence = [];
+                setTimeout(nextRound, 1000);
+            }
+        }
+
+        function resetGame() {
+            sequence = [];
+            playerSequence = [];
+            score = 0;
+            isPlaying = false;
+            scoreDisplay.textContent = '0';
+        }
+
+        // Event Listeners
+        startButton.addEventListener('click', () => {
+            resetGame();
+            nextRound();
+        });
+
+        themeButton.addEventListener('click', () => {
+            currentTheme = currentTheme === 'genshin' ? 'wuwa' : 'genshin';
+            updateTheme();
+            resetGame();
+        });
+
+        soundButton.addEventListener('click', toggleSound);
+
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (isPlaying) return;
+                activateButton(button);
+                playerSequence.push(Number(button.dataset.index));
+                checkPlayerSequence();
+            });
+        });
+
+        // Initialisation
+        updateTheme();
+    </script>
+</body>
+</html>

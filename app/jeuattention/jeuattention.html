@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Jeu d'attention</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-image: url('../../imagewuwa/backgroundwuwa2.png'); /* Mode WuWa par défaut */
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            color: #ffffff;
+            text-shadow: 2px 2px 5px #000000;
+        }
+        .game-item {
+            margin: 20px 0;
+            text-align: center;
+            color: #ffffff;
+        }
+        .choices {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .choices button {
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.6);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.3s;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        .choices button:hover {
+            transform: scale(1.05);
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+        .choices button img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+        #score-display {
+            margin: 20px;
+            font-size: 18px;
+            color: white;
+        }
+        #mode-button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<h1>Jeu d'attention</h1>
+<div id="score-display">Bonnes réponses : <span id="correct-count">0</span> | Mauvaises réponses : <span id="wrong-count">0</span></div>
+<div id="game-container"></div>
+<div>
+    <button id="home-button">Revenir à l'accueil</button>
+    <button id="mode-button">Mode Genshin</button>
+</div>
+<script>
+    // Mode original (WuWa)
+    const wuwaItems = [
+        {image: '../../imagewuwa/Abby.png', name: 'Abby'},
+        {image: '../../imagewuwa/camellya.png', name: 'Camellya'},
+        {image: '../../imagewuwa/Carlotta.png', name: 'Carlotta'},
+        {image: '../../imagewuwa/chixia.png', name: 'Chixia'},
+        {image: '../../imagewuwa/Jinshi2.png', name: 'Jinhsi'},
+        {image: '../../imagewuwa/Lingyang.png', name: 'Lingyang'},
+        {image: '../../imagewuwa/Pheobe.png', name: 'Pheobe'},
+        {image: '../../imagewuwa/Roccia.png', name: 'Roccia'},
+        {image: '../../imagewuwa/Verina.png', name: 'Verina'},
+        {image: '../../imagewuwa/yangyang.png', name: 'Yangyang'},
+    ];
+
+    // Mode alternatif
+    const altItems = [
+        {image: '../../nahida.png', name: 'Nahida'},
+        {image: '../../furina.png', name: 'Furina'},
+        {image: '../../mavuika.png', name: 'Mavuika'},
+        {image: '../../kachina.png', name: 'Kachina'},
+        {image: '../../yelan.png', name: 'Yelan'},
+        {image: '../../itto.png', name: 'Itto'},
+        {image: '../../raiden.png', name: 'Raiden'},
+        {image: '../../sayu.png', name: 'Sayu'},
+        {image: '../../ayaka.png', name: 'Ayaka'},
+        {image: '../../bennett.png', name: 'Bennett'},
+        {image: '../../kazu.png', name: 'Kazuha'},
+        {image: '../../zhongli.png', name: 'Zhongli'},
+        {image: '../../tarta.png', name: 'Tartaglia'},
+        {image: '../../venti.png', name: 'Venti'},
+        {image: '../../klee.png', name: 'Klee'},
+        {image: '../../qiqi.png', name: 'Qiqi'},
+        {image: '../../image2diluc.png', name: 'Diluc'},
+        {image: '../../image1.png', name: 'Paimon'},
+    ];
+
+    // Variables globales
+    let currentItems = wuwaItems; // Mode par défaut (WuWa)
+    let currentBackground = '../../imagewuwa/backgroundwuwa2.png';
+    let correctResponses = 0;
+    let totalResponses = 0;
+
+    const gameContainer = document.getElementById('game-container');
+    const body = document.body;
+
+    // Fonctionnalités principales
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function showRandomItem() {
+        if (totalResponses >= 100) {
+            gameContainer.innerHTML = `<h2>Jeu terminé ! Précision : ${correctResponses}/${totalResponses}</h2>`;
+            return;
+        }
+        const questionType = Math.random() < 0.5 ? 1 : 2;
+        const buttonData = generateButtonData(currentItems);
+        const primaryItem = getRandomItem(currentItems); // Élément cible
+        const distractiveItem = getRandomDistractiveItem(currentItems, primaryItem); // Élément distractif
+        const gameItem = document.createElement('div');
+        gameItem.className = 'game-item';
+        if (questionType === 1) { // Cas 1 : "Cliquez sur l'image correspondant au nom affiché"
+            const correctItem = currentItems.find((item) => item.name === primaryItem.name);
+            gameItem.innerHTML = `
+                <p>Cliquez sur l'image correspondant au nom affiché :</p>
+                <div>
+                    <img src="${distractiveItem.image}" alt="distractive-image" style="width: 100px; height: 100px; border-radius: 50%; margin-bottom: 10px;">
+                    <br>${primaryItem.name}
+                </div>
+            `;
+            const choicesDiv = generateButtons(buttonData, (buttonItem) => {
+                handleChoice(buttonItem.image === correctItem.image);
+            });
+            gameItem.appendChild(choicesDiv);
+        } else { // Cas 2 : "Cliquez sur le nom correspondant à l'image affichée"
+            const correctItem = currentItems.find((item) => item.image === primaryItem.image);
+            gameItem.innerHTML = `
+                <p>Cliquez sur le nom correspondant à l'image affichée :</p>
+                <div>
+                    <img src="${primaryItem.image}" alt="target-image" style="width: 100px; height: 100px; border-radius: 50%; margin-bottom: 10px;">
+                    <br>${distractiveItem.name}
+                </div>
+            `;
+            const choicesDiv = generateButtons(buttonData, (buttonItem) => {
+                handleChoice(buttonItem.name === correctItem.name);
+            });
+            gameItem.appendChild(choicesDiv);
+        }
+        gameContainer.innerHTML = '';
+        gameContainer.appendChild(gameItem);
+    }
+
+    function generateButtons(data, onClickCallback) {
+        const choicesDiv = document.createElement('div');
+        choicesDiv.className = 'choices';
+        data.forEach((buttonItem) => {
+            const button = document.createElement('button');
+            button.innerHTML = `
+                <img src="${buttonItem.image}" alt="${buttonItem.name}" />
+                <br>${buttonItem.name}
+            `;
+            button.onclick = () => onClickCallback(buttonItem);
+            choicesDiv.appendChild(button);
+        });
+        return choicesDiv;
+    }
+
+    function generateButtonData(items) {
+        const images = shuffle([...items]);
+        const names = shuffle([...items]);
+        return images.map((img, index) => ({
+            image: img.image,
+            name: names[index].name,
+        }));
+    }
+
+    function getRandomItem(array) {
+        return array[Math.floor(Math.random() * array.length)];
+    }
+
+    function getRandomDistractiveItem(array, excludedItem) {
+        let candidate;
+        do {
+            candidate = getRandomItem(array);
+        } while (candidate.name === excludedItem.name || candidate.image === excludedItem.image);
+        return candidate;
+    }
+
+    function handleChoice(isCorrect) {
+        if (isCorrect) {
+            correctResponses++;
+        }
+        totalResponses++;
+        updateScoreDisplay();
+        showRandomItem();
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('correct-count').innerText = correctResponses;
+        document.getElementById('wrong-count').innerText = totalResponses - correctResponses;
+    }
+
+    // Changer de mode
+    document.getElementById('mode-button').onclick = function () {
+        if (currentItems === wuwaItems) {
+            currentItems = altItems;
+            currentBackground = '../../backgroundwuwa.png';
+            this.innerText = 'Mode WuWa';
+        } else {
+            currentItems = wuwaItems;
+            currentBackground = '../../imagewuwa/backgroundwuwa2.png';
+            this.innerText = 'Mode Genshin';
+        }
+        body.style.backgroundImage = `url('${currentBackground}')`;
+        showRandomItem(); // Relancer une question
+    };
+
+    // Bouton pour revenir à la page d'accueil
+    document.getElementById('home-button').onclick = function () {
+        window.location.href = '../../index.html';
+    };
+
+    // Lancer le jeu
+    showRandomItem();
+</script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html> 
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu du Memory - Mode Solo Wuwa</title>
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: url('imagewuwa/backgroundwuwa2.png') no-repeat center center fixed;
+            background-size: cover;
+            font-family: Arial, sans-serif;
+        }
+
+        .home-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 1em;
+        }
+
+        .home-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .difficulty-select {
+            margin-bottom: 20px;
+        }
+
+        .difficulty-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .difficulty-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .difficulty-button.active {
+            background: rgba(255, 255, 255, 0.4);
+            font-weight: bold;
+        }
+
+        .memory-game {
+            display: grid;
+            grid-gap: 12px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .memory-game.easy {
+            grid-template-columns: repeat(4, 120px);
+        }
+
+        .memory-game.medium {
+            grid-template-columns: repeat(6, 100px);
+        }
+
+        .memory-game.hard {
+            grid-template-columns: repeat(6, 100px);
+        }
+
+        .card {
+            width: 100%;
+            aspect-ratio: 1;
+            background: url('imagewuwa/doscartes2.png') no-repeat center center;
+            background-size: cover;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .flipped {
+            background-color: white;
+            transform: rotateY(180deg);
+        }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            display: none;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+
+        #attempts {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .memory-game {
+                grid-gap: 8px;
+                padding: 10px;
+            }
+
+            .memory-game.easy {
+                grid-template-columns: repeat(4, 80px);
+            }
+
+            .memory-game.medium, .memory-game.hard {
+                grid-template-columns: repeat(4, 70px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="home-button">Home</a>
+    <div class="difficulty-select">
+        <button class="difficulty-button active" onclick="changeDifficulty('easy')">Facile (4x4)</button>
+        <button class="difficulty-button" onclick="changeDifficulty('medium')">Moyen (4x6)</button>
+        <button class="difficulty-button" onclick="changeDifficulty('hard')">Difficile (6x6)</button>
+    </div>
+    <div id="attempts">Essais : 0</div>
+    <div class="memory-game easy"></div>
+    <script>
+        const images = ['imagewuwa/Abby.png', 'imagewuwa/camellya.png', 'imagewuwa/Changli.png', 'imagewuwa/jinshi.png', 'imagewuwa/Lingyang.png', 'imagewuwa/Roccia.png', 'imagewuwa/shorekeeeper.png', 'imagewuwa/Verina.png', 'imagewuwa/yangyang.png', 'imagewuwa/Zhezhi.png'
+        , 'imagewuwa/Carlotta.png', 'imagewuwa/chixia.png', 'imagewuwa/Jinshi2.png', 'imagewuwa/Jiyan.png', 'imagewuwa/Pheobe.png', 'imagewuwa/rover.png', 'imagewuwa/Xiangliyao.png', 'imagewuwa/Yinlin.png'
+        ];
+
+        let currentDifficulty = 'easy';
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let attempts = 0;
+
+        function getGridSize(difficulty) {
+            switch(difficulty) {
+                case 'easy': return { rows: 4, cols: 4 };
+                case 'medium': return { rows: 4, cols: 6 };
+                case 'hard': return { rows: 6, cols: 6 };
+                default: return { rows: 4, cols: 4 };
+            }
+        }
+
+        function changeDifficulty(difficulty) {
+            currentDifficulty = difficulty;
+            document.querySelectorAll('.difficulty-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[onclick="changeDifficulty('${difficulty}')"]`).classList.add('active');
+            
+            resetGame();
+        }
+
+        function resetGame() {
+            const gameBoard = document.querySelector('.memory-game');
+            gameBoard.className = `memory-game ${currentDifficulty}`;
+            
+            const gridSize = getGridSize(currentDifficulty);
+            const totalCards = gridSize.rows * gridSize.cols;
+            const selectedImages = images.slice(0, totalCards/2);
+            
+            cards = [...selectedImages, ...selectedImages];
+            shuffle(cards);
+            flippedCards = [];
+            matchedPairs = 0;
+            attempts = 0;
+            document.getElementById('attempts').textContent = 'Essais : 0';
+            
+            createBoard();
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function createBoard() {
+            const gameBoard = document.querySelector('.memory-game');
+            gameBoard.innerHTML = '';
+            cards.forEach((imageSrc, index) => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.dataset.image = imageSrc;
+                card.addEventListener('click', flipCard);
+
+                const img = document.createElement('img');
+                img.src = imageSrc;
+                card.appendChild(img);
+                
+                gameBoard.appendChild(card);
+            });
+        }
+
+        function flipCard() {
+            if (flippedCards.length < 2 && !this.classList.contains('flipped')) {
+                this.classList.add('flipped');
+                this.querySelector('img').style.display = 'block';
+                this.style.backgroundImage = 'none';
+                flippedCards.push(this);
+                if (flippedCards.length === 2) {
+                    attempts++;
+                    document.getElementById('attempts').textContent = `Essais : ${attempts}`;
+                    setTimeout(checkMatch, 500);
+                }
+            }
+        }
+
+        function checkMatch() {
+            const [card1, card2] = flippedCards;
+            if (card1.dataset.image === card2.dataset.image) {
+                matchedPairs++;
+                if (matchedPairs === cards.length/2) {
+                    setTimeout(() => alert(`Bravo ! Vous avez gagné en ${attempts} essais ! 🎉`), 300);
+                }
+            } else {
+                card1.classList.remove('flipped');
+                card2.classList.remove('flipped');
+                card1.querySelector('img').style.display = 'none';
+                card2.querySelector('img').style.display = 'none';
+                card1.style.backgroundImage = 'url("imagewuwa/doscartes2.png")';
+                card2.style.backgroundImage = 'url("imagewuwa/doscartes2.png")';
+            }
+            flippedCards = [];
+        }
+
+        // Initialiser le jeu
+        resetGame();
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu du Memory Multijoueur</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            background: var(--game-background-image) no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        :root {
+            --game-background-image: url('backgroundwuwa.png');
+            --card-back-image: url('doscartes.png');
+        }
+
+        .memory-game {
+            display: grid;
+            gap: 10px;
+            margin: 20px auto;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 0.3s ease, grid-template-columns 0.3s ease;
+        }
+
+        .memory-game.waiting {
+            opacity: 0.7;
+        }
+
+        .card {
+            aspect-ratio: 1;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .memory-game.easy {
+            grid-template-columns: repeat(4, minmax(80px, 120px));
+            max-width: 500px;
+        }
+
+        .memory-game.medium {
+            grid-template-columns: repeat(6, minmax(70px, 100px));
+            max-width: 650px;
+        }
+
+        .memory-game.hard {
+            grid-template-columns: repeat(6, minmax(65px, 90px));
+            max-width: 600px;
+        }
+
+        @media (max-width: 768px) {
+            .memory-game.easy {
+                grid-template-columns: repeat(4, minmax(70px, 90px));
+            }
+            .memory-game.medium {
+                grid-template-columns: repeat(4, minmax(65px, 85px));
+            }
+            .memory-game.hard {
+                grid-template-columns: repeat(4, minmax(60px, 80px));
+            }
+            .card {
+                font-size: 0.8em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .memory-game.easy,
+            .memory-game.medium,
+            .memory-game.hard {
+                grid-template-columns: repeat(4, minmax(55px, 75px));
+                gap: 8px;
+            }
+            .card {
+                font-size: 0.7em;
+            }
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card .front,
+        .card .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .card .front img,
+        .card .back img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+            pointer-events: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .card .front {
+            transform: rotateY(180deg);
+            background: white;
+        }
+
+        .card .back {
+            background: var(--card-back-image) center/cover;
+        }
+
+        .game-info {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .waiting-message {
+            background: rgba(255, 165, 0, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            animation: pulse 2s infinite;
+        }
+
+        .rooms-list {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .room-button,
+        .difficulty-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 200px;
+            font-size: 1em;
+        }
+
+        .room-button:hover,
+        .difficulty-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .room-button:disabled {
+            background: rgba(128, 128, 128, 0.2);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .controls {
+            margin: 20px 0;
+        }
+
+        .reset-button {
+            background: rgba(255, 0, 0, 0.5);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .reset-button:hover {
+            background: rgba(255, 0, 0, 0.7);
+            transform: translateY(-2px);
+        }
+
+        .score {
+            font-size: 1.5em;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        .message {
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+            transition: all 0.3s ease;
+        }
+
+        .message.error {
+            background-color: rgba(255, 0, 0, 0.2);
+            color: white;
+        }
+
+        .difficulty-select {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .theme-select {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .theme-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .theme-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        h2, h3 {
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .mode-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .mode-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            margin: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .mode-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Message d'avertissement moins intrusif */
+        .anti-cheat-warning {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 165, 0, 0.9);
+            color: black;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            z-index: 1000;
+            display: none;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="anti-cheat-warning" id="antiCheatWarning">
+        Protection anti-triche active 🛡️
+    </div>
+
+    <div class="game-container" id="gameContainer">
+        <div class="mode-buttons">
+            <a href="/memorysolo/MemoryGenshinLocal/MemoryLancerlejeuici" class="mode-button">Mode Solo Genshin</a>
+            <a href="/memorysolo/memorywuwaLocal/MemorywuwaLancerlejeuici" class="mode-button">Mode Solo Wuwa</a>
+            <a href="/simon" class="mode-button">Simon Game</a>
+            <a href="/jeuattention" class="mode-button">Jeu Attention</a>
+        </div>
+        <div id="themeSelect" class="theme-select">
+            <h2>Choisissez le thème</h2>
+            <button class="theme-button" onclick="selectTheme('default')">Thème Original</button>
+            <button class="theme-button" onclick="selectTheme('wuwa')">Thème Wuwa</button>
+        </div>
+
+        <div id="difficultySelect" class="difficulty-select">
+            <h2>Choisissez la difficulté</h2>
+            <button class="difficulty-button" onclick="selectDifficulty('easy')">Facile (4x4)</button>
+            <button class="difficulty-button" onclick="selectDifficulty('medium')">Moyen (4x6)</button>
+            <button class="difficulty-button" onclick="selectDifficulty('hard')">Difficile (6x6)</button>
+        </div>
+
+        <div id="roomsList" class="rooms-list" style="display: none;">
+            <h2>Salles disponibles</h2>
+            <button class="room-button" onclick="showDifficultySelect()">Créer une nouvelle salle</button>
+            <div id="availableRooms"></div>
+        </div>
+
+        <div class="game-info">
+            <h2 id="playerInfo">En attente de connexion...</h2>
+            <h3 id="turnInfo">Tour du joueur 1</h3>
+            <div class="score">Score : <span id="score1">0</span> - <span id="score2">0</span></div>
+            <div class="controls">
+                <button id="resetButton" class="reset-button" style="display: none;" onclick="resetGame()">Recommencer la partie</button>
+            </div>
+        </div>
+
+        <div id="waitingMessage" class="waiting-message" style="display: none;">
+            En attente d'un autre joueur...
+        </div>
+        <div id="message" class="message"></div>
+        <div id="gameBoard" class="memory-game"></div>
+    </div>
+
+    <script>
+        // Variables de protection améliorées
+        let sessionToken = null;
+        let lastActionTime = 0;
+        let actionCount = 0;
+        const MAX_ACTIONS_PER_SECOND = 2;
+        
+        // Attendre que la page soit complètement chargée avant d'activer les protections
+        let protectionActive = false;
+
+        // Ajouter un paramètre d'URL pour le mode streameur
+        const urlParams = new URLSearchParams(window.location.search);
+        const streamerMode = urlParams.get('streamer') === 'true';
+
+        // Protection contre les raccourcis clavier - Plus spécifique
+        document.addEventListener('keydown', function(e) {
+            if (!protectionActive) return;
+            
+            // Bloquer F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+            if (e.keyCode === 123 || 
+                (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) ||
+                (e.ctrlKey && e.keyCode === 85)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        });
+
+        // Activer les protections après le chargement complet
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                protectionActive = true;
+                // Afficher un petit message discret
+                const warning = document.getElementById('antiCheatWarning');
+                warning.style.display = 'block';
+                setTimeout(() => {
+                    warning.style.display = 'none';
+                }, 3000);
+            }, 1000);
+        });
+
+        // Limitation du taux d'actions
+        function canPerformAction() {
+            const now = Date.now();
+            if (now - lastActionTime < 1000) {
+                actionCount++;
+                if (actionCount > MAX_ACTIONS_PER_SECOND) {
+                    showMessage('Actions trop rapides détectées. Ralentissez !', true);
+                    return false;
+                }
+            } else {
+                actionCount = 1;
+                lastActionTime = now;
+            }
+            return true;
+        }
+
+        // Socket.io avec protection renforcée
+        const socket = io({
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            timeout: 20000
+        });
+
+        let playerNumber = null;
+        let gameStarted = false;
+        let currentRoom = null;
+        let currentDifficulty = 'medium';
+        let currentTheme = 'default';
+
+        const gameBoard = document.getElementById('gameBoard');
+        const playerInfo = document.getElementById('playerInfo');
+        const turnInfo = document.getElementById('turnInfo');
+        const score1 = document.getElementById('score1');
+        const score2 = document.getElementById('score2');
+        const messageEl = document.getElementById('message');
+        const waitingMessageEl = document.getElementById('waitingMessage');
+        const roomsList = document.getElementById('roomsList');
+        const availableRooms = document.getElementById('availableRooms');
+        const resetButton = document.getElementById('resetButton');
+        const difficultySelect = document.getElementById('difficultySelect');
+        const themeSelect = document.getElementById('themeSelect');
+
+        function showMessage(text, isError = false) {
+            messageEl.textContent = text;
+            messageEl.style.display = 'block';
+            messageEl.className = `message ${isError ? 'error' : ''}`;
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3000);
+        }
+
+        function showDifficultySelect() {
+            roomsList.style.display = 'none';
+            themeSelect.style.display = 'block';
+        }
+
+        function selectTheme(theme) {
+            currentTheme = theme;
+            themeSelect.style.display = 'none';
+            difficultySelect.style.display = 'block';
+
+            // Update CSS variables based on theme
+            if (theme === 'wuwa') {
+                document.documentElement.style.setProperty('--game-background-image', 'url(imagewuwa/backgroundwuwa2.png)');
+                document.documentElement.style.setProperty('--card-back-image', 'url(imagewuwa/doscartes2.png)');
+            } else {
+                document.documentElement.style.setProperty('--game-background-image', 'url(backgroundwuwa.png)');
+                document.documentElement.style.setProperty('--card-back-image', 'url(doscartes.png)');
+            }
+        }
+
+        function selectDifficulty(difficulty) {
+            if (!canPerformAction()) return;
+            
+            currentDifficulty = difficulty;
+            difficultySelect.style.display = 'none';
+            socket.emit('createRoom', difficulty, currentTheme);
+        }
+
+        function joinRoom(roomId) {
+            if (!canPerformAction()) return;
+            
+            currentRoom = roomId;
+            socket.emit('joinRoom', roomId);
+            roomsList.style.display = 'none';
+            resetButton.style.display = 'block';
+        }
+
+        function resetGame() {
+            if (!canPerformAction()) return;
+            
+            if (currentRoom) {
+                socket.emit('resetGame');
+            }
+        }
+
+        function updateRoomsList(rooms) {
+            availableRooms.innerHTML = '';
+            rooms.forEach(room => {
+                const button = document.createElement('button');
+                button.className = 'room-button';
+                button.textContent = `Salle ${room.roomId} (${room.players}/2 joueurs) - ${room.difficulty}`;
+                button.disabled = room.players >= 2;
+                button.onclick = () => joinRoom(room.roomId);
+                availableRooms.appendChild(button);
+            });
+        }
+
+        function createCard(index) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.setAttribute('data-index', index);
+
+            const front = document.createElement('div');
+            front.className = 'front';
+            const frontImg = document.createElement('img');
+            frontImg.alt = 'card';
+            front.appendChild(frontImg);
+
+            const back = document.createElement('div');
+            back.className = 'back';
+
+            card.appendChild(front);
+            card.appendChild(back);
+
+            card.addEventListener('click', () => {
+                if (!canPerformAction()) return;
+                
+                if (!gameStarted) {
+                    showMessage('En attente du deuxième joueur...', true);
+                    return;
+                }
+                if (playerNumber && playerNumber === currentTurn && !card.classList.contains('flipped') && !card.classList.contains('matched')) {
+                    // Envoi sécurisé avec token de session
+                    socket.emit('flipCard', {
+                        index: index,
+                        sessionToken: sessionToken
+                    });
+                }
+            });
+
+            return card;
+        }
+
+        function updateGameBoard(difficulty, gridSize) {
+            gameBoard.className = `memory-game ${difficulty}`;
+            gameBoard.innerHTML = '';
+            const totalCards = gridSize.rows * gridSize.cols;
+
+            for (let i = 0; i < totalCards; i++) {
+                gameBoard.appendChild(createCard(i));
+            }
+        }
+
+        let currentTurn = 1;
+        function updateTurn(turn) {
+            currentTurn = turn;
+            turnInfo.textContent = `Tour du Joueur ${turn}`;
+            if (playerNumber === turn) {
+                turnInfo.textContent += ' (À vous de jouer !)';
+            }
+        }
+
+        socket.on('connect', () => {
+            showMessage('Connecté au serveur');
+            roomsList.style.display = 'block';
+            playerInfo.textContent = 'Sélectionnez une salle pour jouer';
+        });
+
+        socket.on('roomsList', updateRoomsList);
+
+        socket.on('roomCreated', (roomId) => {
+            joinRoom(roomId);
+        });
+
+        socket.on('gameState', ({ encryptedCards, cardBack, scores, playerTurn, matchedIndexes, difficulty, theme, gridSize, sessionToken: newSessionToken }) => {
+            // Mise à jour sécurisée du token de session
+            sessionToken = newSessionToken;
+            
+            if (theme) {
+                currentTheme = theme.name;
+                selectTheme(theme.name);
+            }
+
+            updateGameBoard(difficulty, gridSize);
+            updateScores(scores);
+            updateTurn(playerTurn);
+
+            matchedIndexes.forEach(index => {
+                const card = document.querySelector(`[data-index="${index}"]`);
+                if (card) {
+                    card.classList.add('matched');
+                }
+            });
+        });
+
+        socket.on('gameStarted', ({ difficulty, gridSize }) => {
+            waitingMessageEl.style.display = 'none';
+            gameBoard.classList.add('active');
+            gameStarted = true;
+            updateGameBoard(difficulty, gridSize);
+            showMessage('La partie commence !');
+        });
+
+        socket.on('cardFlipped', ({ index, image }) => {
+            const card = document.querySelector(`[data-index="${index}"]`);
+            if (card) {
+                card.classList.add('flipped');
+                const frontImg = card.querySelector('.front img');
+                frontImg.src = image;
+            }
+        });
+
+        socket.on('matchFound', ({ indexes, scores }) => {
+            indexes.forEach(index => {
+                const card = document.querySelector(`[data-index="${index}"]`);
+                if (card) {
+                    card.classList.add('matched');
+                }
+            });
+            updateScores(scores);
+            showMessage('Paire trouvée !');
+        });
+
+        socket.on('mismatch', ({ indexes }) => {
+            setTimeout(() => {
+                indexes.forEach(index => {
+                    const card = document.querySelector(`[data-index="${index}"]`);
+                    if (card) {
+                        card.classList.remove('flipped');
+                    }
+                });
+            }, 1000);
+        });
+
+        socket.on('turnChanged', updateTurn);
+
+        socket.on('gameOver', (scores) => {
+            const winner = scores[1] > scores[2] ? 1 : 2;
+            showMessage(`Partie terminée ! Joueur ${winner} gagne avec ${scores[winner]} paires !`);
+            gameStarted = false;
+        });
+
+        function updateScores(scores) {
+            score1.textContent = scores[1];
+            score2.textContent = scores[2];
+        }
+
+        socket.on('playerLeft', () => {
+            showMessage('Un joueur a quitté la partie !', true);
+            waitingMessageEl.style.display = 'block';
+            gameBoard.classList.remove('active');
+            gameStarted = false;
+        });
+
+        socket.on('error', (message) => {
+            showMessage(message, true);
+        });
+
+        socket.on('playerNumber', (num) => {
+            playerNumber = num;
+            playerInfo.textContent = `Vous êtes le Joueur ${num}`;
+        });
+
+        socket.on('waitingForPlayer', () => {
+            waitingMessageEl.style.display = 'block';
+            gameBoard.classList.remove('active');
+            gameBoard.classList.add('waiting');
+            gameStarted = false;
+        });
+
+        // Gestion de la déconnexion lors de la fermeture/rechargement
+        window.addEventListener('beforeunload', () => {
+            socket.disconnect();
+        });
+
+        // Console info
+        console.log('%c🎮 Memory Game - Mode Multijoueur', 'color: #4CAF50; font-size: 16px; font-weight: bold;');
+        console.log('%c🛡️ Protection anti-triche active', 'color: #ff9800; font-size: 12px;');
+    </script>
+
+
+  </ol>
+</body>
+</html>
