@@ -242,7 +242,6 @@
             if (flippedCards.length < 2 && !this.classList.contains('flipped')) {
                 this.classList.add('flipped');
                 this.querySelector('img').style.transform = "scaleX(-1)";
-                this.querySelector('img').style.display = 'block';
                 this.style.backgroundImage = 'none';
                 flippedCards.push(this);
                 if (flippedCards.length === 2) {
@@ -276,6 +275,7 @@
     </script>
 </body>
 </html>
+
 
 
 
