@@ -316,6 +316,7 @@
         <div class="mode-buttons">
             <a href="/memorysolo/MemoryGenshinLocal/MemoryLancerlejeuici.html" class="mode-button">Mode Solo Genshin</a>
             <a href="/memorysolo/memorywuwaLocal/MemorywuwaLancerlejeuici.html" class="mode-button">Mode Solo Wuwa</a>
+            <a href="/memorysolo/memorypoupouxLocal/MemorypoupouxLancerlejeuici.html" class="mode-button">Mode Solo Poupoux</a>
             <a href="/simon" class="mode-button">Simon Game</a>
             <a href="/jeuattention" class="mode-button">Jeu Attention</a>
         </div>
@@ -323,6 +324,7 @@
             <h2>Choisissez le thème</h2>
             <button class="theme-button" onclick="selectTheme('default')">Thème Original</button>
             <button class="theme-button" onclick="selectTheme('wuwa')">Thème Wuwa</button>
+            <button class="theme-button" onclick="selectTheme('poupoux')">Thème Poupoux</button>
         </div>
 
         <div id="difficultySelect" class="difficulty-select">
@@ -462,7 +464,10 @@
             if (theme === 'wuwa') {
                 document.documentElement.style.setProperty('--game-background-image', 'url(imagewuwa/backgroundwuwa2.png)');
                 document.documentElement.style.setProperty('--card-back-image', 'url(imagewuwa/doscartes2.png)');
-            } else {
+            } else if (theme === 'poupoux') {
+                document.documentElement.style.setProperty('--game-background-image', 'url(imagepoupoux/backgroundpoupoux.png)');
+                document.documentElement.style.setProperty('--card-back-image', 'url(imagepoupoux/doscartes-poupoux.png)');
+            else {
                 document.documentElement.style.setProperty('--game-background-image', 'url(backgroundwuwa.png)');
                 document.documentElement.style.setProperty('--card-back-image', 'url(doscartes.png)');
             }
