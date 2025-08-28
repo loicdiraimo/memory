@@ -93,7 +93,7 @@ const POUPOUX_THEME = {
     'imagepoupoux/poupoux4.png',
     'imagepoupoux/poupoux5.png',
     'imagepoupoux/poupoux6.png',
-    'imagepoupoux/poupoux7.png',
+    'imagepoupoux/Poupoux7.png',
     'imagepoupoux/poupoux8.png',
     'imagepoupoux/poupoux9.png',
     'imagepoupoux/poupoux10.png',
@@ -107,8 +107,8 @@ const POUPOUX_THEME = {
     'imagepoupoux/poupoux18.png'
   ],
   // Tu peux mettre des assets dédiés ici si tu en as, sinon fallback cohérent :
-  cardBack: 'imagepoupoux/doscartes-poupoux.png',
-  background: 'imagepoupoux/backgroundpoupoux.png'
+  cardBack: 'imagepoupoux/dosdecartes3.png',
+  background: 'imagepoupoux/poupouxbackground.png'
 };
 
 // Génération de token de session pour identification sécurisée
