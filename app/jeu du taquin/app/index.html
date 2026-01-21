@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Jeu du Bonhomme en Bâton</title>
+  <style>
+    #puzzleButton {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.85);
+      color: #333;
+      padding: 10px 15px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 16px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.5);
+      transition: background 0.3s;
+      z-index: 10;
+    }
+    #puzzleButton:hover {
+      background: rgba(255, 255, 255, 1);
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-image: url('fond_page.png');
+      background-size: cover;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    canvas {
+      background-image: url('fond_jeu.png');
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-position: center;
+      background-color: #000;
+      display: block;
+    }
+
+    #scoreboard {
+      text-align: center;
+      font-size: 24px;
+      margin-top: 10px;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
+
+    #menu {
+      text-align: center;
+      margin: 10px;
+      color: white;
+    }
+
+    input[type=range] {
+      width: 200px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <audio id="gameMusic" src="musique.mp3" loop></audio>
+  <a href="taquin.html" id="puzzleButton">🧩 Puzzle</a>
+
+  <div id="menu">
+    <h1 style="color:white;">Jeu du Bonhomme en Bâton</h1>
+    <div id="gameControls">
+      <button id="startButton" onclick="startGame()">🎮 Lancer/Rejouer la partie</button>
+    </div>
+    <div id="soundControls">
+      <button onclick="document.getElementById('gameMusic').play()">🎵 Lancer la musique</button>
+      <label for="volume">Volume :</label>
+      <input type="range" id="volume" min="0" max="1" step="0.01" value="1">
+    </div>
+    <p id="bestScoreDisplay" style="color:white;"></p>
+  </div>
+
+  <div id="scoreboard">Score: 0 | Vies: 3 | Fleures: 0</div>
+  <canvas id="gameCanvas" width="1000" height="570"></canvas>
+
+  <script>
+    const bestScoreDisplay = document.getElementById("bestScoreDisplay");
+let bestScore = parseInt(localStorage.getItem("bestScore")) || 0;
+
+    const imgSol = new Image();
+    imgSol.src = "sol.png";
+    let groundOffset = 0;
+    const groundSpeed = 5;
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreboard = document.getElementById("scoreboard");
+    const music = document.getElementById("gameMusic");
+    const volumeSlider = document.getElementById("volume");
+   
+
+    volumeSlider.addEventListener("input", () => {
+      music.volume = volumeSlider.value;
+    });
+
+    const groundLevel = 490;
+    const imgBonhomme1 = new Image(); imgBonhomme1.src = "bonhomme1.png";
+    const imgBonhomme2 = new Image(); imgBonhomme2.src = "bonhomme2.png";
+    const imgBonhommeJump = new Image(); imgBonhommeJump.src = "bonhomme_jump.png";
+    const imgRouge = new Image(); imgRouge.src = "boule_rouge.png";
+    const imgJaune = new Image(); imgJaune.src = "boule_jaune.png";
+
+    let stickman, obstacles, score, lives, yellowBalls, gameOver, gameWon;
+    let lastFrameTime = 0, accumulatedTime = 0;
+    let spawnTimer = 0, yellowTimer = 0, animationTimer = 0;
+    const desiredFPS = 60, frameDuration = 1000 / desiredFPS;
+    const animationInterval = 200;
+
+    let speedLines = [];
+
+    function initSpeedLines() {
+      speedLines = [];
+      for (let i = 0; i < 40; i++) {
+        speedLines.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          length: 100 + Math.random() * 100,
+          angle: Math.PI / 4,
+          speed: 10 + Math.random() * 10,
+          alpha: 0.2 + Math.random() * 0.3
+        });
+      }
+    }
+
+    function drawSpeedLines() {
+  ctx.lineWidth = 1.5;
+  speedLines.forEach(line => {
+    ctx.beginPath();
+    ctx.moveTo(line.x, line.y);
+    ctx.lineTo(line.x - line.length, line.y); // horizontal
+    ctx.strokeStyle = `rgba(255,255,255,${line.alpha})`;
+    ctx.stroke();
+
+    line.x -= line.speed;
+
+    if (line.x + line.length < 0) {
+      line.x = canvas.width + Math.random() * 50;
+      line.y = Math.random() * canvas.height;
+      line.length = 80 + Math.random() * 40;
+      line.speed = 8 + Math.random() * 5;
+      line.alpha = 0.1 + Math.random() * 0.2;
+    }
+  });
+}
+
+
+    function initGame() {
+      stickman = {
+        x: 100,
+        y: groundLevel,
+        width: 20,
+        height: 80,
+        velocityY: 0,
+        jumping: false,
+        frameToggle: true
+      };
+      obstacles = [];
+      score = 0;
+      lives = 3;
+      yellowBalls = 0;
+      gameOver = false;
+      gameWon = false;
+      lastFrameTime = 0;
+      accumulatedTime = 0;
+      spawnTimer = 0;
+      yellowTimer = 0;
+      animationTimer = 0;
+      initSpeedLines();
+    }
+
+    function startGame() {
+      document.getElementById("startButton").blur();
+      initGame();
+      canvas.style.display = "block";
+      scoreboard.style.display = "block";
+      bestScoreDisplay.textContent = `Meilleur score : ${bestScore}`;
+      document.body.focus();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function drawStickman() {
+      const img = stickman.jumping ? imgBonhommeJump : (stickman.frameToggle ? imgBonhomme1 : imgBonhomme2);
+      ctx.drawImage(img, stickman.x, stickman.y - stickman.height, 60, 100);
+    }
+
+    function drawObstacle(ob) {
+      const img = ob.type === "red" ? imgRouge : imgJaune;
+      ctx.drawImage(img, ob.x - ob.radius * 2, ob.y - ob.radius * 2, ob.radius * 4, ob.radius * 4);
+    }
+
+    function drawGround() {
+      groundOffset -= groundSpeed;
+      if (groundOffset <= -canvas.width) {
+        groundOffset = 0;
+      }
+      ctx.drawImage(imgSol, groundOffset, groundLevel + 20, canvas.width, 80);
+      ctx.drawImage(imgSol, groundOffset + canvas.width, groundLevel + 20, canvas.width, 80);
+    }
+
+    function detectCollision(ob) {
+      const dx = stickman.x + stickman.width / 2 - ob.x;
+      const dy = (stickman.y - stickman.height / 2) - ob.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      return distance < ob.radius * 2 + Math.max(stickman.width, stickman.height) / 2;
+    }
+
+    function updateGameState(deltaTime) {
+      stickman.y += stickman.velocityY;
+      stickman.velocityY += 1.5;
+
+      if (stickman.y >= groundLevel) {
+        stickman.y = groundLevel;
+        stickman.jumping = false;
+      }
+
+      spawnTimer += deltaTime;
+      yellowTimer += deltaTime;
+      animationTimer += deltaTime;
+
+      if (spawnTimer >= 1500) {
+        const possibleHeights = [groundLevel, groundLevel - 40, groundLevel - 80];
+        const randomY = possibleHeights[Math.floor(Math.random() * possibleHeights.length)];
+        obstacles.push({ x: canvas.width, y: randomY - 40, radius: 20, type: "red", speed: 7 });
+        spawnTimer = 0;
+      }
+
+      if (yellowTimer >= 30000) {
+        obstacles.push({ x: canvas.width, y: groundLevel - 150, radius: 20, type: "yellow", speed: 10 });
+        yellowTimer = 0;
+      }
+
+      if (animationTimer >= animationInterval) {
+        stickman.frameToggle = !stickman.frameToggle;
+        animationTimer = 0;
+      }
+
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const ob = obstacles[i];
+        ob.x -= ob.speed * (deltaTime / 16.67);
+        drawObstacle(ob);
+
+        if (detectCollision(ob)) {
+          obstacles.splice(i, 1);
+          if (ob.type === "red") {
+            lives--;
+            if (lives <= 0) {
+              gameOver = true;
+              showEndScreen("Game Over");
+              return;
+            }
+          } else if (ob.type === "yellow") {
+            yellowBalls++;
+            if (yellowBalls >= 3) {
+              gameWon = true;
+              showEndScreen("Bien joué ! Tu as gagné !");
+              return;
+            }
+          }
+        } else if (ob.x + ob.radius < 0) {
+          obstacles.splice(i, 1);
+        }
+      }
+
+      score++;
+      scoreboard.textContent = `Score: ${score} | Vies: ${lives} | Fleures: ${yellowBalls}`;
+    }
+
+    function showEndScreen(message) {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "white";
+      ctx.font = "60px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(message, canvas.width / 2, canvas.height / 2 - 30);
+      ctx.font = "30px sans-serif";
+      ctx.fillText(`Score final : ${score}`, canvas.width / 2, canvas.height / 2 + 30);
+      ctx.fillText("Clique sur le bouton Rejouer pour recommencer", canvas.width / 2, canvas.height / 2 + 80);
+
+      if (score > bestScore) {
+        bestScore = score;
+        localStorage.setItem("bestScore", bestScore);
+      }
+    }
+
+    function gameLoop(timestamp) {
+      if (gameOver || gameWon) return;
+      const deltaTime = timestamp - lastFrameTime;
+      lastFrameTime = timestamp;
+      accumulatedTime += deltaTime;
+
+      if (accumulatedTime >= frameDuration) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawSpeedLines();
+        drawGround();
+        drawStickman();
+        updateGameState(accumulatedTime);
+        accumulatedTime = 0;
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener("keydown", function (e) {
+      if (e.code === "Space" && !stickman.jumping) {
+        stickman.velocityY = -30;
+        stickman.jumping = true;
+      }
+    });
+
+    bestScoreDisplay.textContent = `Meilleur score : ${bestScore}`;
+  </script>
+</body>
+</html>
