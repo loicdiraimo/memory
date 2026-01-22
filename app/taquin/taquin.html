@@ -11,8 +11,22 @@
       margin-bottom: 30px;
       margin-top: 30px;
     }
+    .home-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 1em;
+        }
 
-    #modeButton, #modeFruitsButton {
+    #modeButton, #modeFruitsButton,#modeGIButton {
       position: absolute;
       top: 10px;
       background: rgba(255, 255, 255, 0.85);
@@ -151,8 +165,11 @@
 </head>
 <body>
   <a href="index.html" id="accueil">🦖 dino game 🦖</a>
+  <a href="/" class="home-button">Home</a>
   <button id="modeButton">🎭 Mode Wuwa</button>
   <button id="modeFruitsButton">🍎 Mode Fruits</button>
+  <button id="modeGIButton">👑GI</button>
+  
   <img id="background" src="image/backgroundwuwa.png" alt="Fond">
 
   <div class="container">
@@ -210,6 +227,11 @@
 
     modeFruitsButton.addEventListener('click', () => {
       currentMode = "fruits";
+      backgroundImg.src = modeData[currentMode].background;
+      initGame();
+    });
+    modeGIButton.addEventListener('click', () => {
+      currentMode = "genshin";
       backgroundImg.src = modeData[currentMode].background;
       initGame();
     });
