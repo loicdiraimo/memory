@@ -5,6 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Démineur (base) - thème Genshin</title>
   <style>
+	  .home-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 1em;
+        }
+
+        .home-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
     :root{
       --bg:#0b1020;
       --panel:#121a33;
@@ -236,6 +255,7 @@
   </style>
 </head>
 <body>
+	<a href="/" class="home-button">Home</a>
   <div class="app">
     <header>
       <div class="title">
@@ -493,3 +513,4 @@
 </script>
 </body>
 </html>
+
