@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Démineur (base) - thème Genshin</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#121a33;
+      --cell:#1b2547;
+      --cell2:#22305c;
+      --text:#e9ecff;
+      --muted:#aab3e6;
+      --accent:#7aa2ff;
+      --danger:#ff5d6c;
+      --ok:#4de1a7;
+      --shadow: rgba(0,0,0,.35);
+      --size: 38px;
+      --gap: 6px;
+      --radius: 10px;
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    }
+
+    body{
+      margin:0;
+      font-family: var(--font);
+      background: radial-gradient(1000px 600px at 20% 0%, #18255a 0%, var(--bg) 60%);
+      color: var(--text);
+      display:flex;
+      min-height:100vh;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+
+    .app{
+      width:min(920px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 16px 40px var(--shadow);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    header{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom: 14px;
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+
+    .title h1{
+      font-size: 18px;
+      margin:0;
+      letter-spacing:.3px;
+    }
+    .title p{
+      margin:0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-end;
+    }
+
+    select, button{
+      font: inherit;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(10,14,30,.55);
+      color: var(--text);
+      padding: 10px 12px;
+      outline:none;
+    }
+
+    button{
+      cursor:pointer;
+      transition: transform .05s ease;
+    }
+    button:active{ transform: translateY(1px); }
+
+    .stats{
+      display:flex;
+      gap:12px;
+      color: var(--muted);
+      font-size: 13px;
+      align-items:center;
+    }
+    .badge{
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+    }
+
+    .board-wrap{
+      background: rgba(18,26,51,.55);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .board{
+      display:grid;
+      gap: var(--gap);
+      touch-action: manipulation; /* aide mobile */
+      user-select:none;
+    }
+
+    .cell{
+      width: var(--size);
+      height: var(--size);
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, var(--cell), var(--cell2));
+      box-shadow: 0 8px 18px rgba(0,0,0,.22);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 700;
+      cursor:pointer;
+      position:relative;
+    }
+
+    .cell.revealed{
+      cursor:default;
+      background: rgba(255,255,255,.06);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+
+    .cell.flagged::after{
+      content:"⚑";
+      color: var(--accent);
+      font-size: 18px;
+      transform: translateY(-1px);
+    }
+
+    .cell.mine.revealed{
+      background: rgba(255,93,108,.16);
+      border-color: rgba(255,93,108,.35);
+    }
+    .cell.mine.revealed::after{
+      content:"✦";
+      color: var(--danger);
+      font-size: 18px;
+    }
+
+    .msg{
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--muted);
+      min-height: 20px;
+    }
+
+    /* Couleurs chiffres */
+    .n1{ color:#7aa2ff; }
+    .n2{ color:#4de1a7; }
+    .n3{ color:#ffb86b; }
+    .n4{ color:#b38bff; }
+    .n5{ color:#ff5d6c; }
+    .n6{ color:#53d6ff; }
+    .n7{ color:#ffffff; }
+    .n8{ color:#cbd2ff; }
+	/* =========================
+   THEME GENSHIN (placeholders)
+   Remplace les url("...") par tes fichiers.
+   ========================= */
+
+	/* 1) Background global */
+	body{
+	  background-image: url("fond.png");
+	  background-size: cover;
+	  background-position: center;
+	  background-attachment: fixed; /* optionnel */
+	  background-repeat: no-repeat;
+	}
+	/* 3) Cases: on utilise une image pour la case cachée */
+	.cell{
+	  background-image:
+    linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)),
+    url("coffre.png");
+	  background-size: cover;
+	  background-position: center;
+	  background-repeat: no-repeat;
+	  border: 1px solid rgba(255,255,255,.12);
+	}	
+
+
+	/* Case révélée: autre texture */
+	.cell.revealed{
+	  background-image: url("Kuhenki.png");
+	  background-size: cover;
+	  background-position: center;
+	  background-repeat: no-repeat;
+	}
+
+	/* 4) Drapeau: remplace le symbole ⚑ par une icône (vision, marqueur, etc.)
+	   -> Important: on masque l'ancien content texte et on met une image en background. */
+	.cell.flagged::after{
+	  content: "";
+	  width: 70%;
+	  height: 70%;
+	  background-image: url("paimon.png");
+	  background-size: contain;
+	  background-position: center;
+	  background-repeat: no-repeat;
+	}
+
+	/* 5) Bombe: remplace ✦ par une icône bombe */
+	.cell.mine.revealed::after{
+	  content: "";
+	  width: 75%;
+	  height: 75%;
+	  background-image: url("dotoco.webp");
+	  background-size: contain;
+	  background-position: center;
+	  background-repeat: no-repeat;
+	}
+
+
+	
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1>Démineur (base) – futur thème Genshin</h1>
+        <p>Clic gauche: révéler • Clic droit: drapeau • Zéro: ouverture en zone</p>
+      </div>
+
+      <div class="controls">
+        <div class="stats">
+          <span class="badge">Mines: <span id="minesTotal">0</span></span>
+          <span class="badge">Drapeaux: <span id="flagsCount">0</span></span>
+          <span class="badge">État: <span id="status">Prêt</span></span>
+        </div>
+
+        <select id="preset">
+          <option value="9x9x10">Facile (9×9, 10 mines)</option>
+          <option value="16x16x40" selected>Moyen (16×16, 40 mines)</option>
+          <option value="30x16x99">Difficile (30×16, 99 mines)</option>
+        </select>
+        <button id="newGameBtn">Nouvelle partie</button>
+      </div>
+    </header>
+
+    <div class="board-wrap">
+      <div id="board" class="board" aria-label="Plateau du démineur"></div>
+      <div id="msg" class="msg"></div>
+    </div>
+  </div>
+
+<script>
+  // Utilise des data-* pour stocker x/y et retrouver une case via el.dataset. [web:47]
+  const boardEl = document.getElementById("board");
+  const msgEl = document.getElementById("msg");
+  const presetEl = document.getElementById("preset");
+  const newGameBtn = document.getElementById("newGameBtn");
+
+  const minesTotalEl = document.getElementById("minesTotal");
+  const flagsCountEl = document.getElementById("flagsCount");
+  const statusEl = document.getElementById("status");
+
+  let W = 16, H = 16, MINES = 40;
+
+  // state
+  let grid = []; // {mine, revealed, flagged, adj}
+  let gameOver = false;
+  let revealedCount = 0;
+  let flagsCount = 0;
+
+  function parsePreset() {
+    const [w,h,m] = presetEl.value.split("x").map(Number);
+    W = w; H = h; MINES = m;
+  }
+
+  function idx(x,y){ return y*W + x; }
+  function inBounds(x,y){ return x>=0 && y>=0 && x<W && y<H; }
+
+  function neighbors(x,y){
+    const out = [];
+    for(let dy=-1; dy<=1; dy++){
+      for(let dx=-1; dx<=1; dx++){
+        if(dx===0 && dy===0) continue;
+        const nx = x+dx, ny=y+dy;
+        if(inBounds(nx,ny)) out.push([nx,ny]);
+      }
+    }
+    return out;
+  }
+
+  function setMsg(text){ msgEl.textContent = text; }
+  function setStatus(text){ statusEl.textContent = text; }
+
+  function buildEmptyGrid(){
+    grid = Array.from({length: W*H}, () => ({
+      mine:false, revealed:false, flagged:false, adj:0
+    }));
+    gameOver = false;
+    revealedCount = 0;
+    flagsCount = 0;
+  }
+
+  function placeMines(){
+    // placement simple: tirage sans doublons
+    const used = new Set();
+    while(used.size < MINES){
+      const r = Math.floor(Math.random() * grid.length);
+      used.add(r);
+    }
+    for(const i of used) grid[i].mine = true;
+  }
+
+  function computeAdjacencies(){
+    for(let y=0;y<H;y++){
+      for(let x=0;x<W;x++){
+        const cell = grid[idx(x,y)];
+        if(cell.mine){ cell.adj = 0; continue; }
+        let count = 0;
+        for(const [nx,ny] of neighbors(x,y)){
+          if(grid[idx(nx,ny)].mine) count++;
+        }
+        cell.adj = count;
+      }
+    }
+  }
+
+  function renderBoard(){
+    boardEl.style.gridTemplateColumns = `repeat(${W}, var(--size))`;
+    boardEl.innerHTML = "";
+
+    for(let y=0;y<H;y++){
+      for(let x=0;x<W;x++){
+        const el = document.createElement("div");
+        el.className = "cell";
+        el.role = "button";
+        el.tabIndex = 0;
+        el.dataset.x = String(x);
+        el.dataset.y = String(y);
+
+        // Pointer events: pratique pour gérer souris/touch (on utilise surtout click + contextmenu ici). [web:46]
+        el.addEventListener("click", onLeftClick);
+        el.addEventListener("contextmenu", onRightClick);
+
+        boardEl.appendChild(el);
+      }
+    }
+
+    minesTotalEl.textContent = String(MINES);
+    flagsCountEl.textContent = String(flagsCount);
+    setStatus("En cours");
+    setMsg("Astuce: clique une case avec 0 pour ouvrir une zone.");
+  }
+
+  function cellElement(x,y){
+    return boardEl.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+  }
+
+  function updateCellUI(x,y){
+    const c = grid[idx(x,y)];
+    const el = cellElement(x,y);
+    el.classList.toggle("revealed", c.revealed);
+    el.classList.toggle("flagged", c.flagged);
+    el.classList.toggle("mine", c.mine);
+
+    if(c.revealed && !c.mine){
+      el.textContent = c.adj === 0 ? "" : String(c.adj);
+      el.classList.remove("n1","n2","n3","n4","n5","n6","n7","n8");
+      if(c.adj > 0) el.classList.add("n"+c.adj);
+    }else{
+      el.textContent = "";
+      el.classList.remove("n1","n2","n3","n4","n5","n6","n7","n8");
+    }
+  }
+
+  function revealAllMines(){
+    for(let y=0;y<H;y++){
+      for(let x=0;x<W;x++){
+        const c = grid[idx(x,y)];
+        if(c.mine){
+          c.revealed = true;
+          updateCellUI(x,y);
+        }
+      }
+    }
+  }
+
+  function checkWin(){
+    const safeCells = W*H - MINES;
+    if(revealedCount >= safeCells && !gameOver){
+      gameOver = true;
+      setStatus("Gagné");
+      setMsg("Bravo ! Tu as révélé toutes les cases sûres.");
+    }
+  }
+
+  function floodReveal(startX, startY){
+    // Flood fill (BFS) pour révéler une zone de 0 + bordure de chiffres. [web:42]
+    const q = [[startX, startY]];
+    const seen = new Set();
+
+    while(q.length){
+      const [x,y] = q.shift();
+      const key = x + "," + y;
+      if(seen.has(key)) continue;
+      seen.add(key);
+
+      const c = grid[idx(x,y)];
+      if(c.revealed || c.flagged) continue;
+      if(c.mine) continue;
+
+      c.revealed = true;
+      revealedCount++;
+      updateCellUI(x,y);
+
+      // Si adj == 0, on continue sur les voisins.
+      if(c.adj === 0){
+        for(const [nx,ny] of neighbors(x,y)){
+          const n = grid[idx(nx,ny)];
+          if(!n.revealed && !n.flagged && !n.mine){
+            q.push([nx,ny]);
+          }
+        }
+      }
+    }
+  }
+
+  function onLeftClick(e){
+    if(gameOver) return;
+    const el = e.currentTarget;
+    const x = Number(el.dataset.x);
+    const y = Number(el.dataset.y);
+    const c = grid[idx(x,y)];
+    if(c.revealed || c.flagged) return;
+
+    if(c.mine){
+      gameOver = true;
+      c.revealed = true;
+      updateCellUI(x,y);
+      revealAllMines();
+      setStatus("Perdu");
+      setMsg("Boom. Recommence avec “Nouvelle partie”.");
+      return;
+    }
+
+    floodReveal(x,y);
+    checkWin();
+  }
+
+  function onRightClick(e){
+    e.preventDefault(); // empêche le menu contextuel
+    if(gameOver) return;
+
+    const el = e.currentTarget;
+    const x = Number(el.dataset.x);
+    const y = Number(el.dataset.y);
+    const c = grid[idx(x,y)];
+    if(c.revealed) return;
+
+    c.flagged = !c.flagged;
+    flagsCount += c.flagged ? 1 : -1;
+    flagsCountEl.textContent = String(flagsCount);
+    updateCellUI(x,y);
+  }
+
+  function newGame(){
+    parsePreset();
+    buildEmptyGrid();
+    placeMines();
+    computeAdjacencies();
+    renderBoard();
+  }
+
+  presetEl.addEventListener("change", newGame);
+  newGameBtn.addEventListener("click", newGame);
+
+  newGame();
+</script>
+</body>
+</html>
