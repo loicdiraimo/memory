@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Démineur (base) - thème Genshin</title>
   <style>
-	  .home-button {
+  .home-button {
             position: absolute;
             top: 20px;
             left: 20px;
@@ -51,6 +51,13 @@
       align-items:center;
       justify-content:center;
       padding:18px;
+
+      /* THEME GENSHIN background */
+      background-image: url("fond.png");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      background-repeat: no-repeat;
     }
 
     .app{
@@ -136,16 +143,29 @@
     .board{
       display:grid;
       gap: var(--gap);
-      touch-action: manipulation; /* aide mobile */
+      touch-action: manipulation;
       user-select:none;
     }
 
+    /* =========================
+       CASES
+       ========================= */
+
+    /* Case cachée = coffre (+ voile) */
     .cell{
       width: var(--size);
       height: var(--size);
       border-radius: var(--radius);
       border: 1px solid rgba(255,255,255,.10);
-      background: linear-gradient(180deg, var(--cell), var(--cell2));
+
+      /* Plusieurs backgrounds: voile + image (ordre: premier au-dessus). [web:151] */
+      background-image:
+        linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)),
+        url("coffre.png");
+      background-size: cover, cover;
+      background-position: center, center;
+      background-repeat: no-repeat, no-repeat;
+
       box-shadow: 0 8px 18px rgba(0,0,0,.22);
       display:flex;
       align-items:center;
@@ -155,27 +175,59 @@
       position:relative;
     }
 
+    /* Base revealed (on ne met pas d'image ici, car zero/has-number vont décider) */
     .cell.revealed{
       cursor:default;
-      background: rgba(255,255,255,.06);
       box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
     }
 
-    .cell.flagged::after{
-      content:"⚑";
-      color: var(--accent);
-      font-size: 18px;
-      transform: translateY(-1px);
+    /* Révélée zéro => image vide */
+    .cell.revealed.zero{
+      background-image: url("kuhenki.png");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
     }
 
+    /* Révélée avec nombre => image + nombre visible */
+    .cell.revealed.has-number{
+      background-image: url("genshin_case_revelee.png");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+
+      color: #fff;
+      font-weight: 900;
+
+      /* contour noir (outline) */
+      text-shadow:
+        -1px 0 0 #000, 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000,
+        -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    }
+
+    /* Drapeau (icône) */
+    .cell.flagged::after{
+      content: "";
+      width: 70%;
+      height: 70%;
+      background-image: url("paimon.png");
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    /* Bombe révélée (icône) */
     .cell.mine.revealed{
-      background: rgba(255,93,108,.16);
       border-color: rgba(255,93,108,.35);
     }
     .cell.mine.revealed::after{
-      content:"✦";
-      color: var(--danger);
-      font-size: 18px;
+      content: "";
+      width: 75%;
+      height: 75%;
+      background-image: url("dotoco.webp");
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
     }
 
     .msg{
@@ -185,7 +237,7 @@
       min-height: 20px;
     }
 
-    /* Couleurs chiffres */
+    /* Couleurs chiffres (optionnel, tu peux garder) */
     .n1{ color:#7aa2ff; }
     .n2{ color:#4de1a7; }
     .n3{ color:#ffb86b; }
@@ -194,72 +246,14 @@
     .n6{ color:#53d6ff; }
     .n7{ color:#ffffff; }
     .n8{ color:#cbd2ff; }
-	/* =========================
-   THEME GENSHIN (placeholders)
-   Remplace les url("...") par tes fichiers.
-   ========================= */
-
-	/* 1) Background global */
-	body{
-	  background-image: url("fond.png");
-	  background-size: cover;
-	  background-position: center;
-	  background-attachment: fixed; /* optionnel */
-	  background-repeat: no-repeat;
-	}
-	/* 3) Cases: on utilise une image pour la case cachée */
-	.cell{
-	  background-image:
-    linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)),
-    url("coffre.png");
-	  background-size: cover;
-	  background-position: center;
-	  background-repeat: no-repeat;
-	  border: 1px solid rgba(255,255,255,.12);
-	}	
-
-
-	/* Case révélée: autre texture */
-	.cell.revealed{
-	  background-image: url("Kuhenki.png");
-	  background-size: cover;
-	  background-position: center;
-	  background-repeat: no-repeat;
-	}
-
-	/* 4) Drapeau: remplace le symbole ⚑ par une icône (vision, marqueur, etc.)
-	   -> Important: on masque l'ancien content texte et on met une image en background. */
-	.cell.flagged::after{
-	  content: "";
-	  width: 70%;
-	  height: 70%;
-	  background-image: url("paimon.png");
-	  background-size: contain;
-	  background-position: center;
-	  background-repeat: no-repeat;
-	}
-
-	/* 5) Bombe: remplace ✦ par une icône bombe */
-	.cell.mine.revealed::after{
-	  content: "";
-	  width: 75%;
-	  height: 75%;
-	  background-image: url("dotoco.webp");
-	  background-size: contain;
-	  background-position: center;
-	  background-repeat: no-repeat;
-	}
-
-
-	
   </style>
 </head>
 <body>
-	<a href="/" class="home-button">Home</a>
+<a href="/" class="home-button">Home</a>
   <div class="app">
     <header>
       <div class="title">
-        <h1>Démineur (base) – futur thème Genshin</h1>
+        <h1>Démineur - thème Genshin</h1>
         <p>Clic gauche: révéler • Clic droit: drapeau • Zéro: ouverture en zone</p>
       </div>
 
@@ -286,7 +280,6 @@
   </div>
 
 <script>
-  // Utilise des data-* pour stocker x/y et retrouver une case via el.dataset. [web:47]
   const boardEl = document.getElementById("board");
   const msgEl = document.getElementById("msg");
   const presetEl = document.getElementById("preset");
@@ -298,8 +291,7 @@
 
   let W = 16, H = 16, MINES = 40;
 
-  // state
-  let grid = []; // {mine, revealed, flagged, adj}
+  let grid = [];
   let gameOver = false;
   let revealedCount = 0;
   let flagsCount = 0;
@@ -337,7 +329,6 @@
   }
 
   function placeMines(){
-    // placement simple: tirage sans doublons
     const used = new Set();
     while(used.size < MINES){
       const r = Math.floor(Math.random() * grid.length);
@@ -373,7 +364,6 @@
         el.dataset.x = String(x);
         el.dataset.y = String(y);
 
-        // Pointer events: pratique pour gérer souris/touch (on utilise surtout click + contextmenu ici). [web:46]
         el.addEventListener("click", onLeftClick);
         el.addEventListener("contextmenu", onRightClick);
 
@@ -394,17 +384,27 @@
   function updateCellUI(x,y){
     const c = grid[idx(x,y)];
     const el = cellElement(x,y);
+
     el.classList.toggle("revealed", c.revealed);
     el.classList.toggle("flagged", c.flagged);
     el.classList.toggle("mine", c.mine);
 
     if(c.revealed && !c.mine){
-      el.textContent = c.adj === 0 ? "" : String(c.adj);
+      // Ajoute/enlève les classes selon le nombre. [web:139]
+      el.classList.toggle("zero", c.adj === 0);
+      el.classList.toggle("has-number", c.adj > 0);
+
+      // Texte uniquement si > 0
+      el.textContent = (c.adj === 0) ? "" : String(c.adj);
+
+      // Couleurs n1..n8
       el.classList.remove("n1","n2","n3","n4","n5","n6","n7","n8");
       if(c.adj > 0) el.classList.add("n"+c.adj);
+
     }else{
       el.textContent = "";
       el.classList.remove("n1","n2","n3","n4","n5","n6","n7","n8");
+      el.classList.remove("zero","has-number");
     }
   }
 
@@ -430,7 +430,6 @@
   }
 
   function floodReveal(startX, startY){
-    // Flood fill (BFS) pour révéler une zone de 0 + bordure de chiffres. [web:42]
     const q = [[startX, startY]];
     const seen = new Set();
 
@@ -448,7 +447,6 @@
       revealedCount++;
       updateCellUI(x,y);
 
-      // Si adj == 0, on continue sur les voisins.
       if(c.adj === 0){
         for(const [nx,ny] of neighbors(x,y)){
           const n = grid[idx(nx,ny)];
@@ -483,7 +481,7 @@
   }
 
   function onRightClick(e){
-    e.preventDefault(); // empêche le menu contextuel
+    e.preventDefault();
     if(gameOver) return;
 
     const el = e.currentTarget;
@@ -513,4 +511,3 @@
 </script>
 </body>
 </html>
-
